@@ -2490,315 +2490,7 @@ static void flush_all(void)
 			fflush(files[i].fp);
 }
 
-void backsub(char **pb_ptr, const char **sptr_ptr);
-
-Cell *sub(Node **a, int nnn)	/* substitute command */
-{
-	const char *sptr, *q;
-	Cell *x, *y, *result;
-	char *t, *buf, *pb;
-	fa *pfa;
-	int bufsz = recsize;
-
-	if ((buf = (char *) malloc(bufsz)) == NULL)
-		FATAL("out of memory in sub");
-	x = execute(a[3]);	/* target string */
-	t = getsval(x);
-	if (a[0] == NULL)	/* 0 => a[1] is already-compiled regexpr */
-		pfa = (fa *) a[1];	/* regular expression */
-	else {
-		y = execute(a[1]);
-		pfa = makedfa(getsval(y), 1);
-		tempfree(y);
-	}
-	y = execute(a[2]);	/* replacement string */
-	result = False;
-	if (pmatch(pfa, t)) {
-		sptr = t;
-		adjbuf(&buf, &bufsz, 1+patbeg-sptr, recsize, 0, "sub");
-		pb = buf;
-		while (sptr < patbeg)
-			*pb++ = *sptr++;
-		sptr = getsval(y);
-		while (*sptr != '\0') {
-			adjbuf(&buf, &bufsz, 5+pb-buf, recsize, &pb, "sub");
-			if (*sptr == '\\') {
-				backsub(&pb, &sptr);
-			} else if (*sptr == '&') {
-				sptr++;
-				adjbuf(&buf, &bufsz, 1+patlen+pb-buf, recsize, &pb, "sub");
-				for (q = patbeg; q < patbeg+patlen; )
-					*pb++ = *q++;
-			} else
-				*pb++ = *sptr++;
-		}
-		*pb = '\0';
-		if (pb > buf + bufsz)
-			FATAL("sub result1 %.30s too big; can't happen", buf);
-		sptr = patbeg + patlen;
-		if ((patlen == 0 && *patbeg) || (patlen && *(sptr-1))) {
-			adjbuf(&buf, &bufsz, 1+strlen(sptr)+pb-buf, 0, &pb, "sub");
-			while ((*pb++ = *sptr++) != '\0')
-				continue;
-		}
-		if (pb > buf + bufsz)
-			FATAL("sub result2 %.30s too big; can't happen", buf);
-		setsval(x, buf);	/* BUG: should be able to avoid copy */
-		result = True;
-	}
-	tempfree(x);
-	tempfree(y);
-	free(buf);
-	return result;
-}
-
-Cell *gsub(Node **a, int nnn)	/* global substitute */
-{
-	Cell *x, *y;
-	char *rptr, *pb;
-	const char *q, *t, *sptr;
-	char *buf;
-	fa *pfa;
-	int mflag, tempstat, num;
-	int bufsz = recsize;
-	int charlen = 0;
-
-	if ((buf = (char *) malloc(bufsz)) == NULL)
-		FATAL("out of memory in gsub");
-	mflag = 0;	/* if mflag == 0, can replace empty string */
-	num = 0;
-	x = execute(a[3]);	/* target string */
-	t = getsval(x);
-	if (a[0] == NULL)	/* 0 => a[1] is already-compiled regexpr */
-		pfa = (fa *) a[1];	/* regular expression */
-	else {
-		y = execute(a[1]);
-		pfa = makedfa(getsval(y), 1);
-		tempfree(y);
-	}
-	y = execute(a[2]);	/* replacement string */
-	if (pmatch(pfa, t)) {
-		tempstat = pfa->initstat;
-		pfa->initstat = 2;
-		pb = buf;
-		rptr = getsval(y);
-		do {
-			if (patlen == 0 && *patbeg != '\0') {	/* matched empty string */
-				if (mflag == 0) {	/* can replace empty */
-					num++;
-					sptr = rptr;
-					while (*sptr != '\0') {
-						adjbuf(&buf, &bufsz, 5+pb-buf, recsize, &pb, "gsub");
-						if (*sptr == '\\') {
-							backsub(&pb, &sptr);
-						} else if (*sptr == '&') {
-							sptr++;
-							adjbuf(&buf, &bufsz, 1+patlen+pb-buf, recsize, &pb, "gsub");
-							for (q = patbeg; q < patbeg+patlen; )
-								*pb++ = *q++;
-						} else
-							*pb++ = *sptr++;
-					}
-				}
-				if (*t == '\0')	/* at end */
-					goto done;
-				adjbuf(&buf, &bufsz, 2+pb-buf, recsize, &pb, "gsub");
-				charlen = u8_nextlen(t);
-				while (charlen-- > 0)
-					*pb++ = *t++;
-				if (pb > buf + bufsz)	/* BUG: not sure of this test */
-					FATAL("gsub result0 %.30s too big; can't happen", buf);
-				mflag = 0;
-			}
-			else {	/* matched nonempty string */
-				num++;
-				sptr = t;
-				adjbuf(&buf, &bufsz, 1+(patbeg-sptr)+pb-buf, recsize, &pb, "gsub");
-				while (sptr < patbeg)
-					*pb++ = *sptr++;
-				sptr = rptr;
-				while (*sptr != '\0') {
-					adjbuf(&buf, &bufsz, 5+pb-buf, recsize, &pb, "gsub");
-					if (*sptr == '\\') {
-						backsub(&pb, &sptr);
-					} else if (*sptr == '&') {
-						sptr++;
-						adjbuf(&buf, &bufsz, 1+patlen+pb-buf, recsize, &pb, "gsub");
-						for (q = patbeg; q < patbeg+patlen; )
-							*pb++ = *q++;
-					} else
-						*pb++ = *sptr++;
-				}
-				t = patbeg + patlen;
-				if (patlen == 0 || *t == '\0' || *(t-1) == '\0')
-					goto done;
-				if (pb > buf + bufsz)
-					FATAL("gsub result1 %.30s too big; can't happen", buf);
-				mflag = 1;
-			}
-		} while (pmatch(pfa,t));
-		sptr = t;
-		adjbuf(&buf, &bufsz, 1+strlen(sptr)+pb-buf, 0, &pb, "gsub");
-		while ((*pb++ = *sptr++) != '\0')
-			continue;
-	done:	if (pb < buf + bufsz)
-			*pb = '\0';
-		else if (*(pb-1) != '\0')
-			FATAL("gsub result2 %.30s truncated; can't happen", buf);
-		setsval(x, buf);	/* BUG: should be able to avoid copy + free */
-		pfa->initstat = tempstat;
-	}
-	tempfree(x);
-	tempfree(y);
-	x = gettemp();
-	x->tval = NUM;
-	x->fval = num;
-	free(buf);
-	return(x);
-}
-
-Cell *gensub(Node **a, int nnn)	/* global selective substitute */
-	/* XXX incomplete - doesn't support backreferences \0 ... \9 */
-{
-	Cell *x, *y, *res, *h;
-	char *rptr;
-	const char *sptr;
-	char *buf, *pb;
-	const char *t, *q;
-	fa *pfa;
-	int mflag, tempstat, num, whichm;
-	int bufsz = recsize;
-
-	if ((buf = malloc(bufsz)) == NULL)
-		FATAL("out of memory in gensub");
-	mflag = 0;	/* if mflag == 0, can replace empty string */
-	num = 0;
-	x = execute(a[4]);	/* source string */
-	t = getsval(x);
-	res = copycell(x);	/* target string - initially copy of source */
-	res->csub = CTEMP;	/* result values are temporary */
-	if (a[0] == 0)		/* 0 => a[1] is already-compiled regexpr */
-		pfa = (fa *) a[1];	/* regular expression */
-	else {
-		y = execute(a[1]);
-		pfa = makedfa(getsval(y), 1);
-		tempfree(y);
-	}
-	y = execute(a[2]);	/* replacement string */
-	h = execute(a[3]);	/* which matches should be replaced */
-	sptr = getsval(h);
-	if (sptr[0] == 'g' || sptr[0] == 'G')
-		whichm = -1;
-	else {
-		/*
-		 * The specified number is index of replacement, starting
-		 * from 1. GNU awk treats index lower than 0 same as
-		 * 1, we do same for compatibility.
-		 */
-		whichm = (int) getfval(h) - 1;
-		if (whichm < 0)
-			whichm = 0;
-	}
-	tempfree(h);
-
-	if (pmatch(pfa, t)) {
-		char *sl;
-
-		tempstat = pfa->initstat;
-		pfa->initstat = 2;
-		pb = buf;
-		rptr = getsval(y);
-		/*
-		 * XXX if there are any backreferences in subst string,
-		 * complain now.
-		 */
-		for (sl = rptr; (sl = strchr(sl, '\\')) && sl[1]; sl++) {
-			if (strchr("0123456789", sl[1])) {
-				FATAL("gensub doesn't support backreferences (subst \"%s\")", rptr);
-			}
-		}
-		
-		do {
-			if (whichm >= 0 && whichm != num) {
-				num++;
-				adjbuf(&buf, &bufsz, (pb - buf) + (patbeg - t) + patlen, recsize, &pb, "gensub");
-
-				/* copy the part of string up to and including
-				 * match to output buffer */
-				while (t < patbeg + patlen)
-					*pb++ = *t++;
-				continue;
-			}
-
-			if (patlen == 0 && *patbeg != 0) {	/* matched empty string */
-				if (mflag == 0) {	/* can replace empty */
-					num++;
-					sptr = rptr;
-					while (*sptr != 0) {
-						adjbuf(&buf, &bufsz, 5+pb-buf, recsize, &pb, "gensub");
-						if (*sptr == '\\') {
-							backsub(&pb, &sptr);
-						} else if (*sptr == '&') {
-							sptr++;
-							adjbuf(&buf, &bufsz, 1+patlen+pb-buf, recsize, &pb, "gensub");
-							for (q = patbeg; q < patbeg+patlen; )
-								*pb++ = *q++;
-						} else
-							*pb++ = *sptr++;
-					}
-				}
-				if (*t == 0)	/* at end */
-					goto done;
-				adjbuf(&buf, &bufsz, 2+pb-buf, recsize, &pb, "gensub");
-				*pb++ = *t++;
-				if (pb > buf + bufsz)	/* BUG: not sure of this test */
-					FATAL("gensub result0 %.30s too big; can't happen", buf);
-				mflag = 0;
-			}
-			else {	/* matched nonempty string */
-				num++;
-				sptr = t;
-				adjbuf(&buf, &bufsz, 1+(patbeg-sptr)+pb-buf, recsize, &pb, "gensub");
-				while (sptr < patbeg)
-					*pb++ = *sptr++;
-				sptr = rptr;
-				while (*sptr != 0) {
-					adjbuf(&buf, &bufsz, 5+pb-buf, recsize, &pb, "gensub");
-					if (*sptr == '\\') {
-						backsub(&pb, &sptr);
-					} else if (*sptr == '&') {
-						sptr++;
-						adjbuf(&buf, &bufsz, 1+patlen+pb-buf, recsize, &pb, "gensub");
-						for (q = patbeg; q < patbeg+patlen; )
-							*pb++ = *q++;
-					} else
-						*pb++ = *sptr++;
-				}
-				t = patbeg + patlen;
-				if (patlen == 0 || *t == 0 || *(t-1) == 0)
-					goto done;
-				if (pb > buf + bufsz)
-					FATAL("gensub result1 %.30s too big; can't happen", buf);
-				mflag = 1;
-			}
-		} while (pmatch(pfa,t));
-		sptr = t;
-		adjbuf(&buf, &bufsz, 1+strlen(sptr)+pb-buf, 0, &pb, "gensub");
-		while ((*pb++ = *sptr++) != 0)
-			;
-	done:	if (pb > buf + bufsz)
-			FATAL("gensub result2 %.30s too big; can't happen", buf);
-		*pb = '\0';
-		setsval(res, buf);
-		pfa->initstat = tempstat;
-	}
-	tempfree(x);
-	tempfree(y);
-	free(buf);
-	return(res);
-}
-
-void backsub(char **pb_ptr, const char **sptr_ptr)	/* handle \\& variations */
+static void backsub(char **pb_ptr, const char **sptr_ptr)	/* handle \\& variations */
 {						/* sptr[0] == '\\' */
 	char *pb = *pb_ptr;
 	const char *sptr = *sptr_ptr;
@@ -2833,6 +2525,194 @@ void backsub(char **pb_ptr, const char **sptr_ptr)	/* handle \\& variations */
 
 	*pb_ptr = pb;
 	*sptr_ptr = sptr;
+}
+
+static void genbacksub(char **pb_ptr, const char **sptr_ptr, const char *repl)
+{
+	char *pb = *pb_ptr;
+	const char *sptr = *sptr_ptr;
+
+	/*
+	 * We interpret gensub replacement text backslashes using the same
+	 * rules as gawk:
+	 *
+	 * 1. A backslash followed by a digit is a backreference (unsupported).
+	 * 2. A backslash followed by any other character is discarded and the
+	 *    character taken literally.
+	 * 3. A terminal backslash is preserved.
+	 */
+
+	if (*++sptr && strchr("0123456789", *sptr))
+		FATAL("gensub doesn't support backreferences \"%s\"", repl);
+	*pb++ = *sptr ? *sptr++ : '\\';
+
+	*pb_ptr = pb;
+	*sptr_ptr = sptr;
+}
+
+Cell *dosub(Node **a, int subop)        /* sub, gsub, and gensub */
+{
+	fa *pfa;
+	int tempstat;
+	char *repl;
+	Cell *x;
+
+	char *buf = NULL;
+	char *pb = NULL;
+	int bufsz = recsize;
+
+	const char *r, *s;
+	const char *start;
+	const char *noempty = NULL;      /* empty match disallowed here */
+	size_t m = 0;                    /* match count */
+	size_t whichm;                   /* which match to select, 0 = global */
+	int mtype;                       /* match type */
+
+	if (a[0] == NULL) {	/* 0 => a[1] is already-compiled regexpr */
+		pfa = (fa *) a[1];
+	} else {
+		x = execute(a[1]);
+		pfa = makedfa(getsval(x), 1);
+		tempfree(x);
+	}
+
+	x = execute(a[2]);	/* replacement string */
+	repl = tostring(getsval(x));
+	tempfree(x);
+
+	switch (subop) {
+	case SUB:
+		whichm = 1;
+		x = execute(a[3]);    /* source string */
+		break;
+	case GSUB:
+		whichm = 0;
+		x = execute(a[3]);    /* source string */
+		break;
+	case GENSUB:
+		x = execute(a[3]);    /* whichm */
+		s = getsval(x);
+		if (s[0] == 'g' || s[0] == 'G') {
+			whichm = 0;
+		} else {
+			/*
+			 * The specified number is index of replacement, starting
+			 * from 1. GNU awk treats index lower than 1 same as
+			 * 1, we do same for compatibility.
+			 */
+			Awkfloat f = getfval(x);
+			whichm = f < 1 ? 1 : f;
+		}
+		tempfree(x);
+		x = execute(a[4]);    /* source string */
+		break;
+	default:
+		FATAL("dosub: unrecognized subop: %d", subop);
+	}
+
+	start = getsval(x);
+	while (pmatch(pfa, start)) {
+		if (buf == NULL) {
+			if ((pb = buf = malloc(bufsz)) == NULL)
+				FATAL("out of memory in dosub");
+			tempstat = pfa->initstat;
+			pfa->initstat = 2;
+		}
+
+		/* match types */
+		#define	MT_IGNORE  0  /* unselected or invalid */
+		#define MT_INSERT  1  /* selected, empty */
+		#define MT_REPLACE 2  /* selected, not empty */
+
+		/* an empty match just after replacement is invalid */
+
+		if (patbeg == noempty && patlen == 0) {
+			mtype = MT_IGNORE;    /* invalid, not counted */
+		} else if (whichm == ++m || whichm == 0) {
+			mtype = patlen ? MT_REPLACE : MT_INSERT;
+		} else {
+			mtype = MT_IGNORE;    /* unselected, but counted */
+		}
+
+		/* leading text: */
+		if (patbeg > start) {
+			adjbuf(&buf, &bufsz, (pb - buf) + (patbeg - start),
+				recsize, &pb, "dosub");
+			s = start;
+			while (s < patbeg)
+				*pb++ = *s++;
+		}
+
+		if (mtype == MT_IGNORE)
+			goto matching_text;  /* skip replacement text */
+
+		r = repl;
+		while (*r != 0) {
+			adjbuf(&buf, &bufsz, 5+pb-buf, recsize, &pb, "dosub");
+			if (*r == '\\') {
+				if (subop == GENSUB)
+					genbacksub(&pb, &r, repl);
+				else
+					backsub(&pb, &r);
+			} else if (*r == '&') {
+				r++;
+				adjbuf(&buf, &bufsz, 1+patlen+pb-buf, recsize,
+					&pb, "dosub");
+				for (s = patbeg; s < patbeg+patlen; )
+					*pb++ = *s++;
+			} else {
+				*pb++ = *r++;
+			}
+		}
+
+matching_text:
+		if (mtype == MT_REPLACE || *patbeg == '\0')
+			goto next_search;  /* skip matching text */
+		
+		if (patlen == 0)
+			patlen = u8_nextlen(patbeg);
+		adjbuf(&buf, &bufsz, (pb-buf) + patlen, recsize, &pb, "dosub");
+		s = patbeg;
+		while (s < patbeg + patlen)
+			*pb++ = *s++;
+
+next_search:
+		start = patbeg + patlen;
+		if (m == whichm || *patbeg == '\0')
+			break;
+		if (mtype == MT_REPLACE)
+			noempty = start;
+
+		#undef MT_IGNORE
+		#undef MT_INSERT
+		#undef MT_REPLACE
+	}
+
+	xfree(repl);
+
+	if (buf != NULL) {
+		pfa->initstat = tempstat;
+
+		/* trailing text */
+		adjbuf(&buf, &bufsz, 1+strlen(start)+pb-buf, 0, &pb, "dosub");
+		while ((*pb++ = *start++) != '\0')
+			;
+
+		if (subop == GENSUB) {    /* don't clobber the source */
+			tempfree(x);
+			x = gettemp();
+		}
+		setsval(x, buf);
+		free(buf);
+	}
+
+	if (subop != GENSUB) {
+		tempfree(x);
+		x = gettemp();
+		x->tval = NUM;
+		x->fval = m;
+	}
+	return x;
 }
 
 static char *wide_char_to_byte_str(int rune, size_t *outlen)

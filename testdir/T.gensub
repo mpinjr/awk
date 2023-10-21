@@ -1,0 +1,505 @@
+#!/bin/sh
+
+echo T.gensub: gensub tests
+
+awk=${awk:-../a.out}
+
+$awk '
+BEGIN {
+	$0 = s = "aaa"
+	print gensub(/a/, "b", "g");
+	print gensub(/a/, "b", "g", "aaa");
+	print gensub(/a/, "b", "G");
+	print gensub(/a/, "b", "G", "aaa");
+	print gensub(/a/, "b", "-1");
+	print gensub(/a/, "b", "-1", "aaa");
+	print gensub(/a/, "b", "other");
+	print gensub(/a/, "b", "other", "aaa");
+	print gensub(/a/, "b", -1);
+	print gensub(/a/, "b", -1, "aaa");
+	print gensub(/a/, "b", 0);
+	print gensub(/a/, "b", 0, "aaa");
+	print gensub(/a/, "b", 1);
+	print gensub(/a/, "b", 1, "aaa");
+	print gensub(/a/, "b", 2);
+	print gensub(/a/, "b", 2, "aaa");
+	print gensub(/a/, "b", 3);
+	print gensub(/a/, "b", 3, "aaa");
+	print gensub(/a/, "b", 4);
+	print gensub(/a/, "b", 4, "aaa");
+
+	print gensub("a", "b", "g");
+	print gensub("a", "b", "g", "aaa");
+	print gensub("a", "b", "G");
+	print gensub("a", "b", "G", "aaa");
+	print gensub("a", "b", "-1");
+	print gensub("a", "b", "-1", "aaa");
+	print gensub("a", "b", "other");
+	print gensub("a", "b", "other", "aaa");
+	print gensub("a", "b", -1);
+	print gensub("a", "b", -1, "aaa");
+	print gensub("a", "b", 0);
+	print gensub("a", "b", 0, "aaa");
+	print gensub("a", "b", 1);
+	print gensub("a", "b", 1, "aaa");
+	print gensub("a", "b", 2);
+	print gensub("a", "b", 2, "aaa");
+	print gensub("a", "b", 3);
+	print gensub("a", "b", 3, "aaa");
+	print gensub("a", "b", 4);
+	print gensub("a", "b", 4, "aaa");
+
+	# empty regular expression
+	print gensub(//, "b", "g");
+	print gensub(//, "b", "g", "aaa");
+	print gensub(//, "b", "G");
+	print gensub(//, "b", "G", "aaa");
+	print gensub(//, "b", "-1");
+	print gensub(//, "b", "-1", "aaa");
+	print gensub(//, "b", "other");
+	print gensub(//, "b", "other", "aaa");
+	print gensub(//, "b", -1);
+	print gensub(//, "b", -1, "aaa");
+	print gensub(//, "b", 0);
+	print gensub(//, "b", 0, "aaa");
+	print gensub(//, "b", 1);
+	print gensub(//, "b", 1, "aaa");
+	print gensub(//, "b", 2);
+	print gensub(//, "b", 2, "aaa");
+	print gensub(//, "b", 3);
+	print gensub(//, "b", 3, "aaa");
+	print gensub(//, "b", 4);
+	print gensub(//, "b", 4, "aaa");
+
+	# empty pattern
+	print gensub("", "b", "g");
+	print gensub("", "b", "g", "aaa");
+	print gensub("", "b", "G");
+	print gensub("", "b", "G", "aaa");
+	print gensub("", "b", "-1");
+	print gensub("", "b", "-1", "aaa");
+	print gensub("", "b", "other");
+	print gensub("", "b", "other", "aaa");
+	print gensub("", "b", -1);
+	print gensub("", "b", -1, "aaa");
+	print gensub("", "b", 0);
+	print gensub("", "b", 0, "aaa");
+	print gensub("", "b", 1);
+	print gensub("", "b", 1, "aaa");
+	print gensub("", "b", 2);
+	print gensub("", "b", 2, "aaa");
+	print gensub("", "b", 3);
+	print gensub("", "b", 3, "aaa");
+	print gensub("", "b", 4);
+	print gensub("", "b", 4, "aaa");
+
+	# empty replacement
+	print gensub(/a/, "", "g");
+	print gensub(/a/, "", "g", "aaa");
+	print gensub(/a/, "", "G");
+	print gensub(/a/, "", "G", "aaa");
+	print gensub(/a/, "", "-1");
+	print gensub(/a/, "", "-1", "aaa");
+	print gensub(/a/, "", "other");
+	print gensub(/a/, "", "other", "aaa");
+	print gensub(/a/, "", -1);
+	print gensub(/a/, "", -1, "aaa");
+	print gensub(/a/, "", 0);
+	print gensub(/a/, "", 0, "aaa");
+	print gensub(/a/, "", 1);
+	print gensub(/a/, "", 1, "aaa");
+	print gensub(/a/, "", 2);
+	print gensub(/a/, "", 2, "aaa");
+	print gensub(/a/, "", 3);
+	print gensub(/a/, "", 3, "aaa");
+	print gensub(/a/, "", 4);
+	print gensub(/a/, "", 4, "aaa");
+
+	# empty pattern and empty replacement
+	print gensub("", "", "g");
+	print gensub("", "", "g", "aaa");
+	print gensub("", "", "G");
+	print gensub("", "", "G", "aaa");
+	print gensub("", "", "-1");
+	print gensub("", "", "-1", "aaa");
+	print gensub("", "", "other");
+	print gensub("", "", "other", "aaa");
+	print gensub("", "", -1);
+	print gensub("", "", -1, "aaa");
+	print gensub("", "", 0);
+	print gensub("", "", 0, "aaa");
+	print gensub("", "", 1);
+	print gensub("", "", 1, "aaa");
+	print gensub("", "", 2);
+	print gensub("", "", 2, "aaa");
+	print gensub("", "", 3);
+	print gensub("", "", 3, "aaa");
+	print gensub("", "", 4);
+	print gensub("", "", 4, "aaa");
+
+	# empty target
+	$0 = "";
+	print gensub("", "", "g");
+	print gensub("", "", "g", "");
+	print gensub("", "", "1");
+	print gensub("", "", "1", "");
+	print gensub("", "", "2");
+	print gensub("", "", "2", "");
+	print gensub("", "", "");
+	print gensub("", "", "", "");
+
+	# empty match followed by non-empty match
+	print gensub(/c?|de/, "b", "g", "adea")
+	print gensub(/c?|de/, "b", "g", "acdea")
+	print gensub(/c?|de/, "b", "g", "acdeca")
+
+	# special replacement sequences
+	print gensub(/a/, "\\\\\\&", 1, "a")
+	print gensub(/a/, "&\\\\\\&", 1, "a")
+	print gensub(/a/, "\\\\&", 1, "a")
+	print gensub(/a/, "&\\\\&", 1, "a")
+	print gensub(/a/, "\\\\x", 1, "a")
+	print gensub(/a/, "\\x", 1, "a")
+	print gensub(/a/, "&\\&&", 1, "a")
+	print gensub(/a/, "\\&", 1, "a")
+	print gensub(/a/, "&&", 1, "a")
+	print gensub(/a/, "&", 1, "a")
+
+	# anchors (zero-width assertions)
+	print gensub(/^/, "-", "g", "abcdefghi")
+	print gensub(/$/, "-", "g", "abcdefghi")
+	print gensub(/^|$/, "-", "g", "abcdefghi")
+	print gensub(/^|ghi/, "-", "g", "abcdefghi")
+	print gensub(/abc|$/, "-", "g", "abcdefghi")
+	print gensub(/^|def/, "-", "g", "abcdefghi")
+	print gensub(/^|abc/, "-", "g", "abcdefghi")
+	print gensub(/def|$/, "-", "g", "abcdefghi")
+	print gensub(/abc|ghi/, "-", "g", "abcdefghi")
+	print gensub(/^abc|ghi$/, "-", "g", "abcdefghi")
+	print gensub(/^|def|$/, "-", "g", "abcdefghi")
+	print gensub(/ghi|$/, "-", 1, "abcdefghi")
+	print gensub(/ghi|$/, "-", 2, "abcdefghi")
+	print gensub(/ghi|$/, "-", "g", "abcdefghi")
+}
+' >foo2
+cat <<\! >foo1
+bbb
+bbb
+bbb
+bbb
+baa
+baa
+baa
+baa
+baa
+baa
+baa
+baa
+baa
+baa
+aba
+aba
+aab
+aab
+aaa
+aaa
+bbb
+bbb
+bbb
+bbb
+baa
+baa
+baa
+baa
+baa
+baa
+baa
+baa
+baa
+baa
+aba
+aba
+aab
+aab
+aaa
+aaa
+bababab
+bababab
+bababab
+bababab
+baaa
+baaa
+baaa
+baaa
+baaa
+baaa
+baaa
+baaa
+baaa
+baaa
+abaa
+abaa
+aaba
+aaba
+aaab
+aaab
+bababab
+bababab
+bababab
+bababab
+baaa
+baaa
+baaa
+baaa
+baaa
+baaa
+baaa
+baaa
+baaa
+baaa
+abaa
+abaa
+aaba
+aaba
+aaab
+aaab
+
+
+
+
+aa
+aa
+aa
+aa
+aa
+aa
+aa
+aa
+aa
+aa
+aa
+aa
+aa
+aa
+aaa
+aaa
+aaa
+aaa
+aaa
+aaa
+aaa
+aaa
+aaa
+aaa
+aaa
+aaa
+aaa
+aaa
+aaa
+aaa
+aaa
+aaa
+aaa
+aaa
+aaa
+aaa
+
+
+
+
+
+
+
+
+babab
+babbab
+babbbab
+\&
+a\&
+\a
+a\a
+\x
+x
+a&a
+&
+aa
+a
+-abcdefghi
+abcdefghi-
+-abcdefghi-
+-abcdef-
+-defghi-
+-abc-ghi
+-defghi
+abc-ghi-
+-def-
+-def-
+-abc-ghi-
+abcdef-
+abcdefghi-
+abcdef-
+!
+diff -u foo1 foo2 || echo 'BAD: T.gensub (main battery)'
+
+$awk '
+BEGIN {
+	print gensub(/(a)/, "\\\\1", "g", "a")
+	print gensub(/(a)/, "\\\\\\\\1", "g", "a")
+}
+' >foo2
+cat <<\! >foo1
+\1
+\\1
+!
+diff -u foo1 foo2 || echo 'BAD: T.gensub (backreference false positive)'
+
+$awk '
+BEGIN { print gensub(/(a)/, "\\1", "g", "a") }
+' 2>foo1 >/dev/null
+if [ $? -eq 0 ]; then
+	echo "BAD: T.gensub (backreference undetected 1a)"
+fi
+if ! grep -q 'gensub doesn.t support backreferences' foo1; then
+	echo "BAD: T.gensub (backreference undetected 1b)"
+fi
+
+$awk '
+BEGIN { print gensub(/(a)/, "\\\\\\1", "g", "a") }
+' 2>foo1 >/dev/null
+if [ $? -eq 0 ]; then
+	echo "BAD: T.gensub (backreference undetected 2a)"
+fi
+if ! grep -q 'gensub doesn.t support backreferences' foo1; then
+	echo "BAD: T.gensub (backreference undetected 2b)"
+fi
+
+# Some rudimentary utf-8 tests
+
+$awk '
+BEGIN {
+	print gensub(//, "-", 1, "ñññ")
+	print gensub(//, "-", 2, "ñññ")
+	print gensub(//, "-", 3, "ñññ")
+	print gensub(//, "-", 4, "ñññ")
+	print gensub(//, "-", 5, "ñññ")
+	print gensub(//, "-", "g", "ñññ")
+
+	print gensub(/./, "-", 1, "ñññ")
+	print gensub(/./, "-", 2, "ñññ")
+	print gensub(/./, "-", 3, "ñññ")
+	print gensub(/./, "-", 4, "ñññ")
+	print gensub(/./, "-", "g", "ñññ")
+
+	print gensub(/ñ/, "-", 1, "ñññ")
+	print gensub(/ñ/, "-", 2, "ñññ")
+	print gensub(/ñ/, "-", 3, "ñññ")
+	print gensub(/ñ/, "-", 4, "ñññ")
+	print gensub(/ñ/, "-", "g", "ñññ")
+
+	print gensub(/o/, "-", 1, "ñññ")
+	print gensub(/o/, "-", 2, "ñññ")
+	print gensub(/o/, "-", 3, "ñññ")
+	print gensub(/o/, "-", 4, "ñññ")
+	print gensub(/o/, "-", "g", "ñññ")
+
+	print gensub(//, "-", 1, "ñoñoñ")
+	print gensub(//, "-", 2, "ñoñoñ")
+	print gensub(//, "-", 3, "ñoñoñ")
+	print gensub(//, "-", 4, "ñoñoñ")
+	print gensub(//, "-", 5, "ñoñoñ")
+	print gensub(//, "-", 6, "ñoñoñ")
+	print gensub(//, "-", 7, "ñoñoñ")
+	print gensub(//, "-", "g", "ñoñoñ")
+
+	print gensub(//, "-", 1, "oñoño")
+	print gensub(//, "-", 2, "oñoño")
+	print gensub(//, "-", 3, "oñoño")
+	print gensub(//, "-", 4, "oñoño")
+	print gensub(//, "-", 5, "oñoño")
+	print gensub(//, "-", 6, "oñoño")
+	print gensub(//, "-", 7, "oñoño")
+	print gensub(//, "-", "g", "oñoño")
+
+	print gensub(/ñ/, "->&<-", 1, "ñññ")
+	print gensub(/ñ/, "->&<-", 2, "ñññ")
+	print gensub(/ñ/, "->&<-", 3, "ñññ")
+	print gensub(/ñ/, "->&<-", 4, "ñññ")
+	print gensub(/ñ/, "->&<-", "g", "ñññ")
+
+	print gensub(/o/, "ñ", 1, "ooo")
+	print gensub(/o/, "ñ", 2, "ooo")
+	print gensub(/o/, "ñ", 3, "ooo")
+	print gensub(/o/, "ñ", 4, "ooo")
+	print gensub(/o/, "ñ", "g", "ooo")
+
+	print gensub(/o/, "ñ", 1, "oñoño")
+	print gensub(/o/, "ñ", 2, "oñoño")
+	print gensub(/o/, "ñ", 3, "oñoño")
+	print gensub(/o/, "ñ", 4, "oñoño")
+	print gensub(/o/, "ñ", "g", "oñoño")
+
+	print gensub(/o/, "ñ", 1, "ñoñoñ")
+	print gensub(/o/, "ñ", 2, "ñoñoñ")
+	print gensub(/o/, "ñ", 3, "ñoñoñ")
+	print gensub(/o/, "ñ", "g", "ñoñoñ")
+}
+' >foo2
+cat <<\! >foo1
+-ñññ
+ñ-ññ
+ññ-ñ
+ñññ-
+ñññ
+-ñ-ñ-ñ-
+-ññ
+ñ-ñ
+ññ-
+ñññ
+---
+-ññ
+ñ-ñ
+ññ-
+ñññ
+---
+ñññ
+ñññ
+ñññ
+ñññ
+ñññ
+-ñoñoñ
+ñ-oñoñ
+ño-ñoñ
+ñoñ-oñ
+ñoño-ñ
+ñoñoñ-
+ñoñoñ
+-ñ-o-ñ-o-ñ-
+-oñoño
+o-ñoño
+oñ-oño
+oño-ño
+oñoñ-o
+oñoño-
+oñoño
+-o-ñ-o-ñ-o-
+->ñ<-ññ
+ñ->ñ<-ñ
+ññ->ñ<-
+ñññ
+->ñ<-->ñ<-->ñ<-
+ñoo
+oño
+ooñ
+ooo
+ñññ
+ññoño
+oññño
+oñoññ
+oñoño
+ñññññ
+ñññoñ
+ñoñññ
+ñoñoñ
+ñññññ
+!
+diff -u foo1 foo2 || echo 'BAD: T.gensub (utf-8 n-tilde)'
