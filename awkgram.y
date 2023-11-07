@@ -378,7 +378,7 @@ term:
 	| var DECR			{ $$ = op1(POSTDECR, $1); }
 	| var INCR			{ $$ = op1(POSTINCR, $1); }
 	| GENSUB '(' reg_expr comma pattern comma pattern ')'
-		{ $$ = op5(GENSUB, NIL, (Node*)makedfa($3, 1), $5, $7, rectonode()); }
+		{ $$ = op5(GENSUB, NIL, (Node*)makedfa($3, 1), $5, $7, rectonode()); free($3); }
 	| GENSUB '(' pattern comma pattern comma pattern ')'
 		{ if (constnode($3)) {
 			$$ = op5(GENSUB, NIL, (Node *)makedfa(strnode($3), 1), $5, $7, rectonode());
@@ -387,7 +387,7 @@ term:
 			$$ = op5(GENSUB, (Node *)1, $3, $5, $7, rectonode());
 		}
 	| GENSUB '(' reg_expr comma pattern comma pattern comma pattern ')'
-		{ $$ = op5(GENSUB, NIL, (Node*)makedfa($3, 1), $5, $7, $9); }
+		{ $$ = op5(GENSUB, NIL, (Node*)makedfa($3, 1), $5, $7, $9); free($3); }
 	| GENSUB '(' pattern comma pattern comma pattern comma pattern ')'
 		{ if (constnode($3)) {
 			$$ = op5(GENSUB, NIL, (Node *)makedfa(strnode($3),1), $5,$7,$9);
