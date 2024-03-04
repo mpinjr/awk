@@ -873,9 +873,21 @@ bool fnematch(fa *pfa, FILE *f, char **pbuf, int *pbufsize, int quantum)
 		 */
 		if (k - j < MAX_UTF_BYTES) {
 			if (k + MAX_UTF_BYTES > buf + bufsize) {
+				char *obuf = buf;
 				adjbuf((char **) &buf, &bufsize,
 				    bufsize + MAX_UTF_BYTES,
 				    quantum, 0, "fnematch");
+
+				/* buf resized, maybe moved. update pointers */
+				*pbufsize = bufsize;
+				if (obuf != buf) {
+					i = buf + (i - obuf);
+					j = buf + (j - obuf);
+					k = buf + (k - obuf);
+					*pbuf = buf;
+					if (patlen)
+						patbeg = buf + (patbeg - obuf);
+				}
 			}
 			for (n = MAX_UTF_BYTES ; n > 0; n--) {
 				*k++ = (c = getc(f)) != EOF ? c : 0;
@@ -913,10 +925,6 @@ bool fnematch(fa *pfa, FILE *f, char **pbuf, int *pbufsize, int quantum)
 		j = i;
 		s = 2;
 	} while (1);
-
-	/* adjbuf() may have relocated a resized buffer. Inform the world. */
-	*pbuf = buf;
-	*pbufsize = bufsize;
 
 	if (patlen) {
 		/*
